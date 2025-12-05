@@ -1,3 +1,5 @@
-module github.com/bootdotdev/learn-pub-sub-starter
+module github.com/jcourtney5/peril
 
-go 1.22.1
+go 1.25.3
+
+require github.com/rabbitmq/amqp091-go v1.10.0 // indirect
