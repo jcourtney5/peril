@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
+	"github.com/jcourtney5/peril/internal/pubsub"
+	"github.com/jcourtney5/peril/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -20,10 +20,17 @@ func main() {
 
 	fmt.Println("Peril game server started and connected to RabbitMQ")
 
-	// wait for Ctrl+C to exit program
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	fmt.Println("Server running, press Ctrl+C to stop...")
-	<-signalChan // Will block here until user hits ctrl+c
-	fmt.Println("Stopping server and disconnecting from RabbitMQ...")
+	publishCh, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Error opening channel: %v", err)
+	}
+
+	err = pubsub.PublishJSON(publishCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{
+		IsPaused: true,
+	})
+	if err != nil {
+		log.Fatalf("Error publishing JSON: %v", err)
+	}
+
+	fmt.Println("Pause message sent!")
 }
