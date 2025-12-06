@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/jcourtney5/peril/internal/gamelogic"
 	"github.com/jcourtney5/peril/internal/pubsub"
 	"github.com/jcourtney5/peril/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -25,12 +26,52 @@ func main() {
 		log.Fatalf("Error opening channel: %v", err)
 	}
 
-	err = pubsub.PublishJSON(publishCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{
+	gamelogic.PrintServerHelp()
+
+	// Main loop
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+
+		switch words[0] {
+		case "pause":
+			sendPause(publishCh)
+		case "resume":
+			sendResume(publishCh)
+		case "quit":
+			fmt.Println("Quitting the game...")
+			return
+		default:
+			fmt.Println("Unknown command: " + words[0])
+		}
+
+	}
+}
+
+func sendPause(publishCh *amqp.Channel) {
+	fmt.Println("Sending pause message")
+
+	err := pubsub.PublishJSON(publishCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{
 		IsPaused: true,
 	})
 	if err != nil {
-		log.Fatalf("Error publishing JSON: %v", err)
+		log.Fatalf("Error sending pause message: %v", err)
 	}
 
 	fmt.Println("Pause message sent!")
+}
+
+func sendResume(publishCh *amqp.Channel) {
+	fmt.Println("Sending resume message")
+
+	err := pubsub.PublishJSON(publishCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{
+		IsPaused: false,
+	})
+	if err != nil {
+		log.Fatalf("Error sending resume message: %v", err)
+	}
+
+	fmt.Println("Resume message sent!")
 }
