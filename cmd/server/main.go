@@ -11,6 +11,8 @@ import (
 )
 
 func main() {
+	fmt.Println("Starting Peril server...")
+
 	// connect to RabbitMQ
 	const rabbitMqConnection = "amqp://guest:guest@localhost:5672/"
 	conn, err := amqp.Dial(rabbitMqConnection)
@@ -18,8 +20,20 @@ func main() {
 		log.Fatalf("Error connecting to RabbitMq: %v", err)
 	}
 	defer conn.Close()
+	fmt.Println("Peril game server connected to RabbitMQ!")
 
-	fmt.Println("Peril game server started and connected to RabbitMQ")
+	// declare and bind the peril_topic queue
+	_, queue, err := pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
+		pubsub.SimpleQueueDurable,
+	)
+	if err != nil {
+		log.Fatalf("could not declare %v queue: %v", routing.GameLogSlug, err)
+	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	publishCh, err := conn.Channel()
 	if err != nil {
