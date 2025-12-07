@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	"github.com/jcourtney5/peril/internal/gamelogic"
 	"github.com/jcourtney5/peril/internal/pubsub"
@@ -42,9 +40,37 @@ func main() {
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	// wait for Ctrl+C to exit program
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	fmt.Println("press Ctrl+C to stop...")
-	<-signalChan // Will block here until user hits ctrl+c
+	gameState := gamelogic.NewGameState(username)
+
+	// main client loop
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+
+		switch words[0] {
+		case "spawn":
+			if err = gameState.CommandSpawn(words); err != nil {
+				fmt.Println(err)
+				continue
+			}
+		case "move":
+			if _, err = gameState.CommandMove(words); err != nil {
+				fmt.Println(err)
+				continue
+			}
+		case "status":
+			gameState.CommandStatus()
+		case "spam":
+			fmt.Println("Spamming not allowed yet!")
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			fmt.Println("Unknown command: " + words[0])
+		}
+	}
 }
