@@ -22,22 +22,22 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game server connected to RabbitMQ!")
 
-	// declare and bind the peril_topic queue
-	_, queue, err := pubsub.DeclareAndBind(
+	publishCh, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Error opening channel: %v", err)
+	}
+
+	// subscribe to logs
+	err = pubsub.SubscribeGob(
 		conn,
 		routing.ExchangePerilTopic,
 		routing.GameLogSlug,
 		routing.GameLogSlug+".*",
 		pubsub.SimpleQueueDurable,
+		handlerLogs(),
 	)
 	if err != nil {
-		log.Fatalf("could not declare %v queue: %v", routing.GameLogSlug, err)
-	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
-
-	publishCh, err := conn.Channel()
-	if err != nil {
-		log.Fatalf("Error opening channel: %v", err)
+		log.Fatalf("could not starting consuming logs: %v", err)
 	}
 
 	gamelogic.PrintServerHelp()
