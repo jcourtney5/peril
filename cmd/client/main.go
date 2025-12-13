@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jcourtney5/peril/internal/gamelogic"
 	"github.com/jcourtney5/peril/internal/pubsub"
@@ -67,7 +68,7 @@ func main() {
 		routing.WarRecognitionsPrefix,
 		routing.WarRecognitionsPrefix+".*",
 		pubsub.SimpleQueueDurable,
-		handlerWar(gs),
+		handlerWar(gs, publishCh),
 	)
 	if err != nil {
 		log.Fatalf("could not subscribe to war declarations: %v", err)
@@ -119,4 +120,17 @@ func main() {
 			fmt.Println("Unknown command: " + words[0])
 		}
 	}
+}
+
+func publishGameLog(publishCh *amqp.Channel, username, logMsg string) error {
+	return pubsub.PublishGob(
+		publishCh,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug+"."+username,
+		routing.GameLog{
+			CurrentTime: time.Now(),
+			Message:     logMsg,
+			Username:    username,
+		},
+	)
 }
